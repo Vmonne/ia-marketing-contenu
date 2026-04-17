@@ -2,85 +2,89 @@ import streamlit as st
 from groq import Groq
 import os
 
-# 1. CONFIGURATION DE LA PAGE
-st.set_page_config(page_title="Victorine Monné - Assistant Stratégique", page_icon="📑")
-st.title("🎯 Mon Assistant Stratégique Expert")
+# 1. CONFIGURATION
+st.set_page_config(page_title="Victorine Monné - Stratégie", page_icon="🏛️")
 
-# 2. RÉCUPÉRATION DE LA CLÉ API
+# 2. ACCÈS API
 api_key_secret = os.getenv("GROQ_API_KEY")
 if api_key_secret:
     client = Groq(api_key=api_key_secret)
 else:
-    st.error("⚠️ Clé API manquante dans les Secrets.")
+    st.error("Clé API manquante.")
     st.stop()
 
-# 3. LE CERVEAU DE L'APPLICATION (Tes données fixes)
-BIO_EXPERTE = "Archiviste diplômée du STIA, 8 ans d'expérience (Ministère de la Culture). Spécialiste transformation numérique et archivage Low-Cost."
+# 3. BASE DE CONNAISSANCE (Tes sites + Glossaire)
+EXPERTISE_CONTEXT = """
+BIO: Victorine Monné, Archiviste (8 ans d'xp, STIA). 
+PROJETS:
+- LIKOAM: Archivage numérique sur Google Workspace/Firebase. Focus: Traçabilité, conformité DUA, coût réduit.
+- LIBRE OUTILS: Micro-apps HTML/JS autonomes. Focus: Offline-first, vie privée (stockage local), paiement unique (pas d'abonnement).
+TERMINOLOGIE PILLIER: Valeur probante, Intégrité, Cycle de vie, Versement, Échéancier de conservation (ISO 30300).
+"""
 
-MES_PROJETS_FIXES = {
-    "LIKOAM": "Système de Gestion d'Archives Numériques (Apps Script/Firebase). Automatise le cycle de vie (versement, DUA, élimination). Cible: Administrations à moyens limités.",
-    "Libre Outils": "Suite de micro-apps offline (DocManager, BiblioManager, PMEManager). Pas d'abonnement, données locales, fonctionne sans internet.",
-    "Expertise Conseil": "Audit, formation et accompagnement en gouvernance documentaire et normes ISO."
-}
-
-GLOSSAIRE_PIAF = "DUA: Durée d'Utilité Administrative. Valeur probante: Intégrité et fiabilité. Cycle de vie: Étapes du document de la création à l'archivage final."
-
-# 4. BARRE LATÉRALE (Sidebar)
+# 4. BARRE LATÉRALE
 with st.sidebar:
-    st.header("👤 Mon Profil")
-    st.info(f"**Bio:** {BIO_EXPERTE}")
+    st.header("⚙️ Configuration")
+    choix_projet = st.selectbox("Projet ou Expertise", ["LIKOAM", "Libre Outils", "Expertise Conseil", "Nouveau Projet"])
     
-    st.divider()
-    st.header("📁 Gestion des Projets")
-    
-    # Choix entre projets existants ou nouveau
-    mode_projet = st.radio("Source du projet :", ["Projet existant", "Nouveau projet +"])
-    
-    if mode_projet == "Projet existant":
-        nom_projet = st.selectbox("Choisir un projet :", list(MES_PROJETS_FIXES.keys()))
-        def_projet = MES_PROJETS_FIXES[nom_projet]
+    if choix_projet == "Nouveau Projet":
+        nom_nouveau = st.text_input("Nom du nouveau projet")
+        def_nouveau = st.text_area("Description rapide du projet")
+        contexte_travail = f"Nouveau projet: {nom_nouveau}. Description: {def_nouveau}"
     else:
-        nom_projet = st.text_input("Nom du nouveau projet", placeholder="Ex: Projet X")
-        def_projet = st.text_area("Définition du projet", placeholder="Décrivez votre projet ici...")
-
-    st.divider()
-    st.caption("Base terminologique : Glossaire PIAF/AIMF intégré.")
+        contexte_travail = f"Focus sur {choix_projet}"
 
 # 5. INTERFACE PRINCIPALE
+st.title("🖋️ Rédaction Stratégique & Marketing")
+
 col1, col2 = st.columns(2)
 with col1:
-    type_contenu = st.selectbox("Format", ["Post LinkedIn", "Article Blog", "Facebook", "Script Vidéo"])
+    # Réintégration de tes tons favoris avec les miens
+    ton = st.selectbox("Ton du message", 
+                      ["Professionnel", "Pédagogique", "Vendeur (Publicitaire)", "Inspirant (Émotionnel)", "Visionnaire"])
 with col2:
-    ton = st.selectbox("Ton", ["Expert & Professionnel", "Pédagogique", "Engagé", "Amical"])
+    format_post = st.selectbox("Format", ["Post LinkedIn", "Facebook", "Article de blog", "Script Vidéo"])
 
-sujet = st.text_area("Sujet du jour (ex: L'importance de la DUA)")
+sujet_precis = st.text_area("Quel est l'objectif ou le sujet du message ?", 
+                           placeholder="Ex: Convaincre une mairie d'adopter LIKOAM pour sécuriser ses actes...")
 
 # 6. GÉNÉRATION
-if st.button("✨ Générer le contenu"):
-    if sujet and def_projet:
-        # Le prompt qui fusionne tout : Code + Application + Glossaire
-        prompt = f"""
-        CONTEXTE EXPERT: {BIO_EXPERTE}
-        TERMINOLOGIE RÉFÉRENCE: {GLOSSAIRE_PIAF}
-        PROJET ACTUEL ({nom_projet}): {def_projet}
+if st.button("🚀 Générer le contenu"):
+    if sujet_precis:
+        # Instruction système pour éviter la répétition du CV
+        system_prompt = f"""
+        Tu es Victorine Monné. Tu ne cites jamais ton diplôme ou tes années d'expérience explicitement sauf si c'est indispensable.
+        Tu agis comme une experte qui apporte une solution concrète.
         
-        FORMAT: {type_contenu}
-        TON: {ton}
-        SUJET: {sujet}
+        CONTEXTE TECHNIQUE: {EXPERTISE_CONTEXT}
+        PROJET CONCERNÉ: {contexte_travail}
         
-        Rédige un contenu percutant. Utilise ton expertise d'archiviste pour donner de la valeur.
-        Si c'est pour LinkedIn, utilise des accroches fortes et des hashtags pertinents.
+        CONSIGNES DE TON :
+        - Si 'Vendeur': Sois persuasive, insiste sur le gain de temps, d'argent et la sécurité.
+        - Si 'Inspirant': Parle d'impact, d'avenir, de souveraineté numérique pour l'Afrique.
+        - Si 'Pédagogique': Explique les termes du glossaire (comme la DUA) simplement.
         """
         
-        with st.spinner("Analyse du projet et rédaction en cours..."):
+        user_prompt = f"""
+        Sujet: {sujet_precis}
+        Format: {format_post}
+        Ton choisi: {ton}
+        
+        Action: Rédige un texte puissant. Si tu utilises des termes techniques (comme 'valeur probante'), assure-toi qu'ils servent le message.
+        """
+
+        with st.spinner("Rédaction en cours..."):
             completion = client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": prompt}],
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ]
             )
             st.session_state['resultat'] = completion.choices[0].message.content
 
-# 7. AFFICHAGE ET TÉLÉCHARGEMENT
+# 7. AFFICHAGE
 if 'resultat' in st.session_state:
     st.markdown("---")
     st.markdown(st.session_state['resultat'])
-    st.download_button("📥 Télécharger le texte", st.session_state['resultat'], file_name=f"post_{nom_projet}.txt")
+    st.download_button("📥 Télécharger", st.session_state['resultat'], file_name="contenu_expert.txt")
